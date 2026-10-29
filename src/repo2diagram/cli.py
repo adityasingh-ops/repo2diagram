@@ -47,6 +47,9 @@ def cmd_generate(args: argparse.Namespace) -> int:
         if not args.quiet:
             print(f"  ✓ {mod.name:<28} {mod.role}", file=sys.stderr)
 
+    if args.watch:
+        return _watch(args)
+
     t0 = time.time()
     if not args.quiet:
         print(f"Scanning {args.source} …", file=sys.stderr)
@@ -88,6 +91,29 @@ def cmd_generate(args: argparse.Namespace) -> int:
         print(f"→ {dest.resolve()}", file=sys.stderr)
     if args.open and fmt == "html":
         webbrowser.open(dest.resolve().as_uri())
+    return 0
+
+
+def _watch(args: argparse.Namespace) -> int:
+    from repo2diagram.watch import serve
+
+    root = Path(args.source).expanduser()
+    if not root.is_dir():
+        _err("--watch needs a local directory")
+        return 1
+
+    def build() -> str:
+        graph, report = build_graph(root, summarize_with_llm=not args.no_llm, include_tests=args.tests,
+                                    diff_base=args.diff, provider=args.provider, model=args.model,
+                                    workers=args.workers)
+        return render(graph, "html", report, args.direction)
+
+    try:
+        serve(root.resolve(), build, port=args.port, open_browser=not args.no_open,
+              log=lambda m: print(m, file=sys.stderr))
+    except OSError as e:
+        _err(f"could not start the server on port {args.port}: {e}")
+        return 1
     return 0
 
 
@@ -224,6 +250,10 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
     gen.add_argument("--direction", choices=["LR", "TD"], default="LR", help="diagram direction")
     gen.add_argument("--workers", type=int, default=4, help="parallel LLM requests")
     gen.add_argument("--open", action="store_true", help="open the HTML in your browser")
+    gen.add_argument("-w", "--watch", action="store_true",
+                     help="serve a live diagram on localhost that redraws as you edit code")
+    gen.add_argument("--port", type=int, default=8484, help="port for --watch (default 8484)")
+    gen.add_argument("--no-open", action="store_true", help="with --watch, don't open a browser")
     gen.add_argument("-q", "--quiet", action="store_true")
     gen.add_argument("-V", "--version", action="version", version=f"repo2diagram {__version__}")
 

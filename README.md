@@ -47,6 +47,7 @@ repo2diagram -o ARCHITECTURE.md      # Markdown with a Mermaid diagram (renders 
 repo2diagram -f mermaid -o -         # raw Mermaid to stdout
 repo2diagram -f json                 # the full graph for your own tooling
 repo2diagram --no-llm                # static analysis only — instant, no model needed
+repo2diagram --watch                 # live diagram on localhost that redraws as you code
 ```
 
 | Flag | What it does |
@@ -58,6 +59,7 @@ repo2diagram --no-llm                # static analysis only — instant, no mode
 | `--all` | Also draw tests, docs, examples and CI folders |
 | `--direction TD` | Top-down instead of left-to-right |
 | `--open` | Open the HTML when done |
+| `-w, --watch` | Serve a live diagram at `http://127.0.0.1:8484` that redraws on every save (`--port`, `--no-open`) |
 
 ## Models
 
