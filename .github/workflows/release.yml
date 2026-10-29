@@ -1,11 +1,12 @@
 name: Release
 
-# Push a tag like v0.1.0 to publish to PyPI.
+# Push a version tag like v0.2.1 to publish to PyPI. The moving `v0` tag used by the
+# GitHub Action doesn't match, so it never triggers a release.
 # One-time setup: on pypi.org add a "trusted publisher" for this repo,
 # workflow `release.yml`, environment `pypi` — no API token needed.
 on:
   push:
-    tags: ["v*"]
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
 
 jobs:
   publish:
