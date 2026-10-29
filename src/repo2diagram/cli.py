@@ -213,7 +213,7 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
     )
     gen.add_argument("source", nargs="?", default=".", help="local path, git URL, or owner/repo (default: .)")
     gen.add_argument("-o", "--output", help="output file ('-' for stdout); format inferred from extension")
-    gen.add_argument("-f", "--format", choices=list(FORMATS), help="html (default), md, mermaid, json")
+    gen.add_argument("-f", "--format", choices=list(FORMATS), help="html (default), md, mermaid, json, pr (compact PR comment, use with --diff)")
     gen.add_argument("--diff", metavar="REF", nargs="?", const="main",
                      help="highlight modules changed since REF (default: main) and their blast radius")
     gen.add_argument("--no-llm", action="store_true", help="static analysis only, no model calls")

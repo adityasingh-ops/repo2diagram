@@ -93,3 +93,18 @@ def test_static_mode_when_provider_none(repo):
     cfgmod.set_value("provider", "none")
     graph, _ = build_graph(repo)
     assert graph.provider == "static"
+
+
+def test_pr_comment_focuses_on_the_change(git_repo):
+    (git_repo / "src/demo/db/models.py").write_text("class User: pass\n")
+    graph, report = build_graph(git_repo, summarize_with_llm=False, diff_base="main")
+    out = render(graph, "pr", report)
+    assert out.startswith("<!-- repo2diagram:pr -->")
+    assert "🔴 | `src/demo/db`" in out and "🟠 | `src/demo/api`" in out
+    assert "utils" not in out.split("```mermaid")[1].split("```")[0]  # unrelated module left out
+
+
+def test_pr_comment_without_source_changes(git_repo):
+    (git_repo / "README.md").write_text("changed\n")
+    graph, report = build_graph(git_repo, summarize_with_llm=False, diff_base="main")
+    assert "No source modules changed" in render(graph, "pr", report)
