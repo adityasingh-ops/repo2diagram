@@ -56,3 +56,4 @@ def test_flat_package_is_split_into_files():
 def test_loads_jsonc_keeps_glob_strings():
     text = '{"compilerOptions": {"paths": {"@/*": ["./*"]}}, /* c */ "include": ["**/*.ts",],}'
     assert loads_jsonc(text)["compilerOptions"]["paths"]["@/*"] == ["./*"]
+

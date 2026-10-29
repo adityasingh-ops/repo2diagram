@@ -44,3 +44,23 @@ def test_rust_modules_inside_one_crate(tmp_path: Path):
         "src/db/schema.rs": "use self::super::Pool;\n",
     })
     assert links(scan(root), "src/api", "src/db")
+
+
+def test_java_and_kotlin_packages(tmp_path: Path):
+    j = "src/main/java/com/shop"
+    root = write_tree(tmp_path / "jvm", {
+        "pom.xml": "<project/>",
+        f"{j}/api/OrderController.java": "package com.shop.api;\nimport com.shop.service.OrderService;\n"
+                                         "import static com.shop.util.Strings.trim;\nclass OrderController {}\n",
+        f"{j}/service/OrderService.java": "package com.shop.service;\nimport com.shop.model.*;\n"
+                                          "class OrderService { PriceCalc c; }\n",
+        f"{j}/service/PriceCalc.java": "package com.shop.service;\nclass PriceCalc {}\n",
+        f"{j}/model/Order.java": "package com.shop.model;\nclass Order {}\n",
+        f"{j}/util/Strings.java": "package com.shop.util;\nclass Strings {}\n",
+        f"{j}/jobs/Cleanup.kt": "package com.shop.jobs\n\nimport com.shop.model.Order\n\nclass Cleanup\n",
+    })
+    graph = scan(root)
+    assert links(graph, f"{j}/api", f"{j}/service")
+    assert links(graph, f"{j}/api", f"{j}/util")
+    assert links(graph, f"{j}/service", f"{j}/model")
+    assert links(graph, f"{j}/jobs", f"{j}/model")

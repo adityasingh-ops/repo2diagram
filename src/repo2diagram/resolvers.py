@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 import tomllib
+from collections import defaultdict
 from pathlib import Path, PurePosixPath
 
 
@@ -139,3 +140,50 @@ class RustResolver:
             if hit and hit != rel:
                 out.append(hit)
         return out
+
+
+# --------------------------------------------------------------------------- Java / Kotlin / Scala
+
+JVM_PACKAGE = re.compile(r"^\s*package\s+([\w.]+)", re.MULTILINE)
+JVM_IMPORT = re.compile(r"^\s*import\s+(?:static\s+)?(\w+(?:\.\w+)*)(\.\*)?", re.MULTILINE)
+JVM_EXTS = (".java", ".kt", ".kts", ".scala")
+
+
+class JvmResolver:
+    """Resolves ``import a.b.Foo`` / ``import a.b.*`` (and same-package references) via declared packages."""
+
+    def __init__(self, root: Path, files: list[str]):
+        self.classes: dict[str, str] = {}  # fully-qualified class -> file
+        self.packages: dict[str, list[str]] = defaultdict(list)  # package -> files
+        self.package_of: dict[str, str] = {}
+        for f in files:
+            if not f.endswith(JVM_EXTS):
+                continue
+            m = JVM_PACKAGE.search(_read(root, f))
+            pkg = m.group(1) if m else ""
+            self.package_of[f] = pkg
+            self.packages[pkg].append(f)
+            self.classes[f"{pkg}.{PurePosixPath(f).stem}" if pkg else PurePosixPath(f).stem] = f
+
+    def _resolve(self, name: str, wildcard: bool) -> list[str]:
+        if wildcard:
+            if name in self.packages:
+                return self.packages[name]
+            return [self.classes[name]] if name in self.classes else []  # import a.b.Outer.*
+        parts = name.split(".")
+        for n in range(len(parts), 0, -1):  # a.b.Outer.Inner / static a.b.Util.method
+            hit = self.classes.get(".".join(parts[:n]))
+            if hit:
+                return [hit]
+        return []
+
+    def targets(self, root: Path, rel: str) -> list[str]:
+        text = _read(root, rel)
+        out = []
+        for name, star in JVM_IMPORT.findall(text):
+            out += self._resolve(name, bool(star))
+        # Classes in the same package need no import; count the ones this file mentions.
+        for other in self.packages.get(self.package_of.get(rel, ""), []):
+            if other != rel and re.search(rf"\b{re.escape(PurePosixPath(other).stem)}\b", text):
+                out.append(other)
+        return [t for t in out if t != rel]

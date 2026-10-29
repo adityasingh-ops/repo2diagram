@@ -17,11 +17,11 @@ from pathlib import Path, PurePosixPath
 import pathspec
 
 from repo2diagram.model import Edge, Module, RepoGraph
-from repo2diagram.resolvers import RustResolver
+from repo2diagram.resolvers import JVM_EXTS, JvmResolver, RustResolver
 
 LANGUAGES = {
     ".py": "Python", ".js": "JavaScript", ".jsx": "JavaScript", ".mjs": "JavaScript", ".cjs": "JavaScript",
-    ".ts": "TypeScript", ".tsx": "TypeScript", ".go": "Go", ".rs": "Rust", ".java": "Java", ".kt": "Kotlin",
+    ".ts": "TypeScript", ".tsx": "TypeScript", ".go": "Go", ".rs": "Rust", ".java": "Java", ".kt": "Kotlin", ".kts": "Kotlin",
     ".rb": "Ruby", ".php": "PHP", ".cs": "C#", ".cpp": "C++", ".cc": "C++", ".c": "C", ".h": "C",
     ".hpp": "C++", ".swift": "Swift", ".dart": "Dart", ".scala": "Scala", ".vue": "Vue", ".svelte": "Svelte",
     ".sh": "Shell", ".sql": "SQL", ".tf": "Terraform", ".proto": "Protobuf", ".lua": "Lua", ".ex": "Elixir",
@@ -484,6 +484,9 @@ def _import_edges(root: Path, files: list[str], file_to_module: dict[str, str]) 
     extra = {}
     if any(f.endswith(".rs") for f in files):
         extra["Rust"] = RustResolver(root, files)
+    if any(f.endswith(JVM_EXTS) for f in files):
+        jvm = JvmResolver(root, files)
+        extra.update({"Java": jvm, "Kotlin": jvm, "Scala": jvm})
 
     weights: Counter[tuple[str, str]] = Counter()
     for f in files:
