@@ -34,7 +34,7 @@ def load_file() -> dict:
     if not p.exists():
         return {}
     try:
-        data = json.loads(p.read_text())
+        data = json.loads(p.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return {}
     return {k: v for k, v in data.items() if k in KEYS and v}
@@ -43,7 +43,7 @@ def load_file() -> dict:
 def save_file(data: dict) -> Path:
     p = config_path()
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps({k: v for k, v in data.items() if v}, indent=2) + "\n")
+    p.write_text(json.dumps({k: v for k, v in data.items() if v}, indent=2) + "\n", encoding="utf-8")
     p.chmod(stat.S_IRUSR | stat.S_IWUSR)  # it may hold an API key
     return p
 

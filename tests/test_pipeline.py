@@ -75,7 +75,7 @@ def test_render_formats(repo, fmt):
 def test_cli_writes_html(repo, tmp_path):
     out = tmp_path / "diagram.html"
     assert main([str(repo), "--no-llm", "-q", "-o", str(out)]) == 0
-    assert out.read_text().startswith("<!doctype html>")
+    assert out.read_text(encoding="utf-8").startswith("<!doctype html>")
 
 
 def test_config_roundtrip_and_permissions(capsys):

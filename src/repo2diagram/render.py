@@ -127,7 +127,7 @@ def to_json(graph: RepoGraph, report: dict | None = None) -> str:
 
 
 def to_html(graph: RepoGraph, report: dict | None = None, direction: str = "LR") -> str:
-    template = resources.files("repo2diagram").joinpath("templates/diagram.html").read_text()
+    template = resources.files("repo2diagram").joinpath("templates/diagram.html").read_text(encoding="utf-8")
     data = graph.to_dict()
     data["diff"] = report
     payload = json.dumps(data).replace("</", "<\\/")

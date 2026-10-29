@@ -80,7 +80,7 @@ def cmd_generate(args: argparse.Namespace) -> int:
         sys.stdout.write(out)
         return 0
     dest = Path(args.output or f"{graph.name}-architecture{FORMATS[fmt]}")
-    dest.write_text(out)
+    dest.write_text(out, encoding="utf-8")
     if not args.quiet:
         label = graph.provider if graph.provider != "static" else "static (no LLM — try Ollama or `config set`)"
         print(f"\n{len(graph.modules)} modules · {len(graph.edges)} links · labels: {label} · "
@@ -217,14 +217,14 @@ def cmd_setup(args: argparse.Namespace) -> int:
     data = {}
     if path.exists():
         try:
-            data = json.loads(path.read_text() or "{}")
+            data = json.loads(path.read_text(encoding="utf-8") or "{}")
         except json.JSONDecodeError:
             _err(f"{path} is not valid JSON; not touching it")
             return 1
         shutil.copy2(path, path.with_suffix(path.suffix + ".bak"))
     data.setdefault("mcpServers", {})["repo2diagram"] = entry
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2) + "\n")
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     print(f"Added repo2diagram to {path}. Restart the app to load it.")
     return 0
 
@@ -272,6 +272,9 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    for stream in (sys.stdout, sys.stderr):  # Windows consoles default to a legacy codepage
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     argv = sys.argv[1:] if argv is None else argv
     gen, top = build_parser()
     if argv and argv[0] in SUBCOMMANDS and argv[0] != "generate":

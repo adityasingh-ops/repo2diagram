@@ -85,7 +85,7 @@ def list_files(root: Path) -> list[str]:
         spec = None
         gi = root / ".gitignore"
         if gi.exists():
-            spec = pathspec.PathSpec.from_lines("gitwildmatch", gi.read_text(errors="replace").splitlines())
+            spec = pathspec.PathSpec.from_lines("gitwildmatch", gi.read_text(encoding="utf-8", errors="replace").splitlines())
         files = []
         for dirpath, dirnames, filenames in os.walk(root):
             dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
@@ -242,7 +242,7 @@ def _python_index(files: list[str]) -> dict[str, str]:
 
 def python_imports(path: Path, rel: str) -> list[str]:
     try:
-        tree = ast.parse(path.read_text(errors="replace"))
+        tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
     except (SyntaxError, ValueError):
         return []
     pkg = list(PurePosixPath(rel).parent.parts)
@@ -305,7 +305,7 @@ def _js_aliases(root: Path, files: list[str]) -> dict[str, dict[str, str]]:
         cdir = str(PurePosixPath(cfg).parent)
         cdir = "" if cdir == "." else cdir
         try:
-            opts = loads_jsonc((root / cfg).read_text(errors="replace")).get("compilerOptions") or {}
+            opts = loads_jsonc((root / cfg).read_text(encoding="utf-8", errors="replace")).get("compilerOptions") or {}
         except (json.JSONDecodeError, AttributeError, OSError):
             continue
         aliases = out.setdefault(cdir, {})
@@ -346,20 +346,20 @@ def third_party_dependencies(root: Path) -> list[str]:
     pj = root / "package.json"
     if pj.exists():
         try:
-            data = json.loads(pj.read_text(errors="replace"))
+            data = json.loads(pj.read_text(encoding="utf-8", errors="replace"))
             deps += list((data.get("dependencies") or {}).keys())
         except json.JSONDecodeError:
             pass
     req = root / "requirements.txt"
     if req.exists():
-        for line in req.read_text(errors="replace").splitlines():
+        for line in req.read_text(encoding="utf-8", errors="replace").splitlines():
             line = line.split("#")[0].strip()
             if line and not line.startswith("-"):
                 deps.append(re.split(r"[<>=!~\[; ]", line, maxsplit=1)[0])
     pp = root / "pyproject.toml"
     if pp.exists():
         try:
-            data = tomllib.loads(pp.read_text(errors="replace"))
+            data = tomllib.loads(pp.read_text(encoding="utf-8", errors="replace"))
         except tomllib.TOMLDecodeError:
             data = {}
         reqs = list(data.get("project", {}).get("dependencies", []))
@@ -367,10 +367,10 @@ def third_party_dependencies(root: Path) -> list[str]:
         deps += [re.split(r"[<>=!~\[; ]", d.strip(), maxsplit=1)[0] for d in reqs if isinstance(d, str)]
     gm = root / "go.mod"
     if gm.exists():
-        deps += re.findall(r"^\s*([\w.\-]+\.[\w.\-/]+)\s+v", gm.read_text(errors="replace"), re.MULTILINE)
+        deps += re.findall(r"^\s*([\w.\-]+\.[\w.\-/]+)\s+v", gm.read_text(encoding="utf-8", errors="replace"), re.MULTILINE)
     cargo = root / "Cargo.toml"
     if cargo.exists():
-        m = re.search(r"^\[dependencies\]([\s\S]*?)(^\[|\Z)", cargo.read_text(errors="replace"), re.MULTILINE)
+        m = re.search(r"^\[dependencies\]([\s\S]*?)(^\[|\Z)", cargo.read_text(encoding="utf-8", errors="replace"), re.MULTILINE)
         if m:
             deps += re.findall(r"^([\w\-]+)\s*=", m.group(1), re.MULTILINE)
     seen, out = set(), []
@@ -476,7 +476,7 @@ def _import_edges(root: Path, files: list[str], file_to_module: dict[str, str]) 
     go_mod = ""
     gm = root / "go.mod"
     if gm.exists():
-        m = re.search(r"^module\s+(\S+)", gm.read_text(errors="replace"), re.MULTILINE)
+        m = re.search(r"^module\s+(\S+)", gm.read_text(encoding="utf-8", errors="replace"), re.MULTILINE)
         go_mod = m.group(1) if m else ""
     go_dirs: dict[str, str] = {}
     for f in files:
@@ -506,13 +506,13 @@ def _import_edges(root: Path, files: list[str], file_to_module: dict[str, str]) 
                 if hit:
                     targets.append(hit)
         elif lang in ("JavaScript", "TypeScript", "Vue", "Svelte"):
-            text = p.read_text(errors="replace")
+            text = p.read_text(encoding="utf-8", errors="replace")
             for spec in JS_IMPORT.findall(text):
                 hit = _resolve_js(spec, f, fileset, _nearest_aliases(f, alias_map))
                 if hit:
                     targets.append(hit)
         elif lang == "Go" and go_mod:
-            for imp in go_imports(p.read_text(errors="replace")):
+            for imp in go_imports(p.read_text(encoding="utf-8", errors="replace")):
                 if imp.startswith(go_mod + "/"):
                     hit = go_dirs.get(imp[len(go_mod) + 1:])
                     if hit:

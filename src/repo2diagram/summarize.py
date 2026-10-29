@@ -52,12 +52,12 @@ def _cached(client, prompt: str) -> dict:
     path = cache_dir() / f"{key}.json"
     if path.exists():
         try:
-            return json.loads(path.read_text())
+            return json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             pass
     data = parse_json(client.complete(SYSTEM, prompt))
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data))
+    path.write_text(json.dumps(data), encoding="utf-8")
     return data
 
 
@@ -93,7 +93,7 @@ def _excerpts(graph: RepoGraph, mod: Module, inbound: dict[str, int]) -> str:
     chunks = []
     for f in picks:
         try:
-            lines = (root / f).read_text(errors="replace").splitlines()[:EXCERPT_LINES]
+            lines = (root / f).read_text(encoding="utf-8", errors="replace").splitlines()[:EXCERPT_LINES]
         except OSError:
             continue
         chunks.append(f"--- {f}\n" + "\n".join(lines))

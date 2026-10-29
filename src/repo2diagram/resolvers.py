@@ -14,7 +14,7 @@ from pathlib import Path, PurePosixPath
 
 def _read(root: Path, rel: str) -> str:
     try:
-        return (root / rel).read_text(errors="replace")
+        return (root / rel).read_text(encoding="utf-8", errors="replace")
     except OSError:
         return ""
 

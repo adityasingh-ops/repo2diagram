@@ -48,7 +48,7 @@ def diagram_repo(
     if save_html and Path(graph.root).is_dir():
         out = Path(graph.root) / f"{graph.name}-architecture.html"
         try:
-            out.write_text(to_html(graph, report))
+            out.write_text(to_html(graph, report), encoding="utf-8")
             md += f"\nInteractive diagram saved to: {out}\n"
         except OSError:
             pass
@@ -95,7 +95,7 @@ def module_details(path: str, module: str, max_lines_per_file: int = 60) -> str:
     excerpts = []
     for f in key[:5]:
         try:
-            text = "\n".join((root / f).read_text(errors="replace").splitlines()[:max_lines_per_file])
+            text = "\n".join((root / f).read_text(encoding="utf-8", errors="replace").splitlines()[:max_lines_per_file])
         except OSError:
             continue
         excerpts.append(f"### {f}\n```\n{text}\n```")
