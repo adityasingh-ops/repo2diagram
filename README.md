@@ -28,6 +28,8 @@ Every new codebase starts with the same hour of clicking through folders to figu
 - **PR blast radius** — `--diff main` highlights the modules a branch touches **and every module that depends on them**, locally or as a GitHub Action comment on every PR.
 - **Works in your AI tools** — MCP server for Claude Code, Claude Desktop and Cursor; skill for coding agents.
 
+See it on real projects: **[gallery](docs/gallery)** — ripgrep, the MCP Python SDK, eShopOnWeb, Vercel's AI chatbot, Spring PetClinic and more.
+
 ## Install
 
 ```bash
