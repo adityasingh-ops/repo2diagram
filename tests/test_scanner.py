@@ -57,3 +57,8 @@ def test_loads_jsonc_keeps_glob_strings():
     text = '{"compilerOptions": {"paths": {"@/*": ["./*"]}}, /* c */ "include": ["**/*.ts",],}'
     assert loads_jsonc(text)["compilerOptions"]["paths"]["@/*"] == ["./*"]
 
+
+def test_deep_package_named_like_aux_dir_is_kept():
+    files = [f"src/main/java/org/acme/samples/app/{d}/X{i}.java" for d in ("model", "owner", "vet") for i in range(3)]
+    groups = group_modules(files + ["docs/guide.md", "examples/demo.py"])
+    assert any(k.endswith("samples/app/model") for k in groups)

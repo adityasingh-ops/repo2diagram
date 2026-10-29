@@ -126,7 +126,9 @@ def count_lines(path: Path) -> int:
 def is_auxiliary(path: str) -> bool:
     """Tests, docs, examples, CI — useful, but noise in an architecture diagram."""
     name = path.lower()
-    return bool(path) and (bool(TEST_MARKERS.search(name + "/")) or bool(AUX_DIRS.search(name)))
+    # docs/, examples/ … only count near the top; deep down (com/acme/samples/) they're package names.
+    top = "/".join(name.split("/")[:2])
+    return bool(path) and (bool(TEST_MARKERS.search(name + "/")) or bool(AUX_DIRS.search(top)))
 
 
 def group_modules(files: list[str]) -> dict[str, list[str]]:
