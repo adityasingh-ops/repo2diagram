@@ -64,3 +64,19 @@ def test_java_and_kotlin_packages(tmp_path: Path):
     assert links(graph, f"{j}/api", f"{j}/util")
     assert links(graph, f"{j}/service", f"{j}/model")
     assert links(graph, f"{j}/jobs", f"{j}/model")
+
+
+def test_csharp_namespaces(tmp_path: Path):
+    root = write_tree(tmp_path / "cs", {
+        "Shop.sln": "",
+        "src/Shop.Api/Controllers/OrdersController.cs":
+            "using Shop.Core.Services;\nnamespace Shop.Api.Controllers;\nclass OrdersController { OrderService s; }\n",
+        "src/Shop.Api/Program.cs": "namespace Shop.Api;\nclass Program {}\n",
+        "src/Shop.Core/Services/OrderService.cs":
+            "using Shop.Core.Models;\nnamespace Shop.Core.Services\n{\n  class OrderService { Order o; }\n}\n",
+        "src/Shop.Core/Models/Order.cs": "namespace Shop.Core.Models;\nclass Order {}\n",
+        "src/Shop.Core/Models/Customer.cs": "namespace Shop.Core.Models;\nclass Customer {}\n",
+    })
+    graph = scan(root)
+    assert links(graph, "src/Shop.Api", "src/Shop.Core")
+    assert not links(graph, "src/Shop.Core", "src/Shop.Api")

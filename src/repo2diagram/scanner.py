@@ -17,7 +17,7 @@ from pathlib import Path, PurePosixPath
 import pathspec
 
 from repo2diagram.model import Edge, Module, RepoGraph
-from repo2diagram.resolvers import JVM_EXTS, JvmResolver, RustResolver
+from repo2diagram.resolvers import JVM_EXTS, CSharpResolver, JvmResolver, RustResolver
 
 LANGUAGES = {
     ".py": "Python", ".js": "JavaScript", ".jsx": "JavaScript", ".mjs": "JavaScript", ".cjs": "JavaScript",
@@ -489,6 +489,8 @@ def _import_edges(root: Path, files: list[str], file_to_module: dict[str, str]) 
     if any(f.endswith(JVM_EXTS) for f in files):
         jvm = JvmResolver(root, files)
         extra.update({"Java": jvm, "Kotlin": jvm, "Scala": jvm})
+    if any(f.endswith(".cs") for f in files):
+        extra["C#"] = CSharpResolver(root, files)
 
     weights: Counter[tuple[str, str]] = Counter()
     for f in files:

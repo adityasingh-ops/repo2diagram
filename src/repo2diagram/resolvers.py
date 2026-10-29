@@ -187,3 +187,41 @@ class JvmResolver:
             if other != rel and re.search(rf"\b{re.escape(PurePosixPath(other).stem)}\b", text):
                 out.append(other)
         return [t for t in out if t != rel]
+
+
+# --------------------------------------------------------------------------- C#
+
+CS_NAMESPACE = re.compile(r"^\s*namespace\s+([\w.]+)", re.MULTILINE)
+CS_USING = re.compile(r"^\s*(?:global\s+)?using\s+(?:static\s+)?(?:\w+\s*=\s*)?([\w.]+)\s*;", re.MULTILINE)
+
+
+class CSharpResolver:
+    """Resolves ``using A.B;`` to the files that declare ``namespace A.B``.
+
+    A namespace can span many files, so only files whose type names the source
+    file actually mentions are counted (falling back to the whole namespace).
+    """
+
+    def __init__(self, root: Path, files: list[str]):
+        self.namespaces: dict[str, list[str]] = defaultdict(list)
+        self.namespace_of: dict[str, list[str]] = {}
+        for f in files:
+            if not f.endswith(".cs"):
+                continue
+            spaces = CS_NAMESPACE.findall(_read(root, f))
+            self.namespace_of[f] = spaces
+            for ns in spaces:
+                self.namespaces[ns].append(f)
+
+    def targets(self, root: Path, rel: str) -> list[str]:
+        text = _read(root, rel)
+        visible = set(CS_USING.findall(text))
+        for ns in self.namespace_of.get(rel, []):  # enclosing namespaces are visible without `using`
+            parts = ns.split(".")
+            visible |= {".".join(parts[:n]) for n in range(1, len(parts) + 1)}
+        out = []
+        for ns in visible:
+            candidates = [f for f in self.namespaces.get(ns, []) if f != rel]
+            used = [f for f in candidates if re.search(rf"\b{re.escape(PurePosixPath(f).stem)}\b", text)]
+            out += used or ([] if ns in self.namespace_of.get(rel, []) else candidates)
+        return out
