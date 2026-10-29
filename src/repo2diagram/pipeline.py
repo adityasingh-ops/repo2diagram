@@ -33,6 +33,12 @@ def resolve_source(source: str) -> tuple[Path, Path | None]:
                        capture_output=True, text=True)
     except subprocess.CalledProcessError as e:
         shutil.rmtree(tmp, ignore_errors=True)
+        if "not found" in e.stderr.lower():
+            raise RuntimeError(
+                f"couldn't find the repository {source!r}. Use a real GitHub name like "
+                "`BurntSushi/ripgrep`, a git URL, or a local folder such as `.` "
+                "(private repos need git access to be set up)."
+            ) from e
         raise RuntimeError(f"git clone failed: {e.stderr.strip()}") from e
     return dest, tmp
 

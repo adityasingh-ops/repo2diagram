@@ -108,3 +108,8 @@ def test_pr_comment_without_source_changes(git_repo):
     (git_repo / "README.md").write_text("changed\n")
     graph, report = build_graph(git_repo, summarize_with_llm=False, diff_base="main")
     assert "No source modules changed" in render(graph, "pr", report)
+
+
+def test_missing_local_path_is_a_clear_error(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        build_graph(tmp_path / "nope", summarize_with_llm=False)
