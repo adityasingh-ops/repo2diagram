@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+  :root {
+    --bg: #f8fafc; --panel: #ffffff; --text: #0f172a; --muted: #64748b; --border: #e2e8f0;
+    --accent: #2563eb; --chip: #f1f5f9; --changed: #dc2626; --impacted: #f59e0b; --hover: #eff6ff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b1120; --panel: #111827; --text: #e5e7eb; --muted: #94a3b8; --border: #1f2937;
+      --accent: #60a5fa; --chip: #1f2937; --hover: #172554;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b1120; --panel: #111827; --text: #e5e7eb; --muted: #94a3b8; --border: #1f2937;
+    --accent: #60a5fa; --chip: #1f2937; --hover: #172554;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+         display: grid; grid-template-rows: auto 1fr; }
+  header { padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--panel);
+           display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; }
+  header h1 { font-size: 18px; margin: 0; }
+  header .summary { color: var(--muted); flex: 1 1 420px; margin: 0; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { background: var(--chip); border-radius: 999px; padding: 2px 10px; font-size: 12px; color: var(--muted); }
+  .tools { display: flex; gap: 6px; align-items: center; }
+  .tools input { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px;
+                 padding: 6px 10px; width: 180px; }
+  button { background: var(--chip); color: var(--text); border: 1px solid var(--border); border-radius: 8px;
+           padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+  button:hover { border-color: var(--accent); }
+  .banner { width: 100%; padding: 8px 12px; border-radius: 8px; background: var(--chip); font-size: 13px; }
+  .banner b.c { color: var(--changed); } .banner b.i { color: var(--impacted); }
+  main { display: grid; grid-template-columns: 1fr 360px; min-height: 0; }
+  #canvas { position: relative; overflow: hidden; min-height: 0; }
+  #diagram { width: 100%; height: 100%; }
+  #diagram svg { width: 100%; height: 100%; max-width: none !important; }
+  #diagram .node { cursor: pointer; }
+  #diagram .node.dim { opacity: .25; }
+  #diagram .node.sel rect, #diagram .node.sel polygon { stroke: var(--accent) !important; stroke-width: 4px !important; }
+  aside { border-left: 1px solid var(--border); background: var(--panel); overflow: auto; padding: 16px 18px; }
+  aside h2 { margin: 0 0 4px; font-size: 16px; word-break: break-all; }
+  aside h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 18px 0 6px; }
+  aside .role { color: var(--accent); font-weight: 600; font-size: 13px; }
+  aside ul { list-style: none; margin: 0; padding: 0; }
+  aside li { padding: 3px 0; font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; }
+  aside a { color: var(--accent); text-decoration: none; } aside a:hover { text-decoration: underline; }
+  aside .link { cursor: pointer; color: var(--accent); }
+  .hint { color: var(--muted); }
+  .legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+                         margin-right: 5px; vertical-align: -1px; background: var(--c); }
+  footer { position: absolute; left: 12px; bottom: 10px; font-size: 12px; color: var(--muted); }
+  footer a { color: var(--muted); }
+  .err { padding: 20px; color: var(--changed); white-space: pre-wrap; }
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; grid-template-rows: 60vh auto; }
+    aside { border-left: 0; border-top: 1px solid var(--border); }
+    header { padding: 12px 16px; }
+    .tools input { width: 130px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title"></h1>
+  <p class="summary" id="summary"></p>
+  <div class="chips" id="chips"></div>
+  <div class="tools">
+    <input id="search" placeholder="Find module…" autocomplete="off">
+    <button id="fit" title="Fit to screen">Fit</button>
+    <button id="copy" title="Copy Mermaid source">Copy Mermaid</button>
+    <button id="svg" title="Download SVG">SVG</button>
+    <button id="theme" title="Toggle theme">◐</button>
+  </div>
+  <div class="banner" id="banner" hidden></div>
+</header>
+<main>
+  <div id="canvas">
+    <div id="diagram"></div>
+    <footer>made with <a href="https://github.com/adityasingh-ops/repo2diagram">repo2diagram</a></footer>
+  </div>
+  <aside id="panel"></aside>
+</main>
+<pre id="mermaid-src" hidden>__MERMAID__</pre>
+<script id="graph-data" type="application/json">__DATA__</script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script type="module">
+let mermaid = null, layout = "dagre";
+try {
+  mermaid = (await import("https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs")).default;
+  try {  // ELK gives far cleaner layouts for dependency graphs; dagre is the fallback.
+    const elk = (await import("https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0/dist/mermaid-layout-elk.esm.min.mjs")).default;
+    mermaid.registerLayoutLoaders(elk);
+    layout = "elk";
+  } catch {}
+} catch {}
+{
+  const G = JSON.parse(document.getElementById("graph-data").textContent);
+  const SRC = document.getElementById("mermaid-src").textContent;
+  const byId = Object.fromEntries(G.modules.map(m => [m.id, m]));
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  let panzoom = null, selected = null;
+
+  // ---- header
+  $("title").textContent = G.name;
+  $("summary").textContent = G.summary || "Click a module to see what it does, its files and its dependencies.";
+  const loc = G.modules.reduce((a, m) => a + m.loc, 0);
+  const langs = Object.entries(G.languages).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([l]) => l);
+  $("chips").innerHTML = [`${G.modules.length} modules`, `${G.edges.length} links`, `${loc.toLocaleString()} LOC`,
+    ...langs, G.provider !== "static" ? `labels: ${G.provider}` : "labels: static"]
+    .map(t => `<span class="chip">${esc(t)}</span>`).join("");
+  if (G.diff) {
+    const d = G.diff, b = $("banner");
+    b.hidden = false;
+    b.innerHTML = `Diff vs <code>${esc(d.base)}</code>: ${d.changed_files} files · ` +
+      `<b class="c">changed</b> ${esc(d.changed_modules.join(", ") || "none")} · ` +
+      `<b class="i">blast radius</b> ${esc(d.impacted_modules.join(", ") || "none")}`;
+  }
+
+  // ---- theme
+  const saved = (() => { try { return localStorage.getItem("r2d-theme"); } catch { return null; } })();
+  if (saved) document.documentElement.dataset.theme = saved;
+  const isDark = () => document.documentElement.dataset.theme
+    ? document.documentElement.dataset.theme === "dark"
+    : matchMedia("(prefers-color-scheme: dark)").matches;
+
+  // ---- side panel
+  const fileLink = f => G.web_url
+    ? `<a href="${esc(G.web_url)}/${esc(f)}" target="_blank" rel="noopener">${esc(f)}</a>`
+    : `<a href="vscode://file/${esc(G.root)}/${esc(f)}">${esc(f)}</a>`;
+  const modLinks = ids => ids.length
+    ? `<ul>${ids.map(id => `<li><span class="link" data-mod="${id}">${esc(byId[id].name)}</span></li>`).join("")}</ul>`
+    : `<p class="hint">none</p>`;
+
+  function overview() {
+    const deps = G.dependencies.slice(0, 18).map(d => `<span class="chip">${esc(d)}</span>`).join(" ");
+    $("panel").innerHTML = `
+      <h2>${esc(G.name)}</h2>
+      <p class="hint">${esc(G.summary || "Tip: run with a local model (Ollama) or Claude for AI-written labels.")}</p>
+      <div class="legend">
+        <span style="--c:#2563eb">API</span><span style="--c:#db2777">UI</span><span style="--c:#16a34a">Data</span>
+        <span style="--c:#7c3aed">AI/ML</span><span style="--c:#ea580c">Core</span><span style="--c:#ca8a04">Utils</span>
+        <span style="--c:#64748b">Infra</span>
+      </div>
+      ${deps ? `<h3>Key dependencies</h3><div class="chips">${deps}</div>` : ""}
+      <h3>Modules</h3>${modLinks(G.modules.map(m => m.id))}`;
+  }
+
+  function show(id) {
+    const m = byId[id];
+    if (!m) return overview();
+    const out = G.edges.filter(e => e.source === id).map(e => e.target);
+    const inn = G.edges.filter(e => e.target === id).map(e => e.source);
+    const files = m.files.slice(0, 200);
+    const status = m.changed ? `<p><b style="color:var(--changed)">Changed in this diff</b></p><ul>${m.changed_files.map(f => `<li>${fileLink(f)}</li>`).join("")}</ul>`
+      : m.impacted ? `<p><b style="color:var(--impacted)">In the blast radius</b> — depends on changed code.</p>` : "";
+    $("panel").innerHTML = `
+      <p class="hint"><span class="link" data-mod="">← overview</span></p>
+      <h2>${esc(m.path || "(root)")}</h2>
+      <div class="role">${esc(m.role || m.main_language)}</div>
+      ${m.summary ? `<p>${esc(m.summary)}</p>` : ""}
+      ${status}
+      <div class="chips">${Object.entries(m.languages).map(([l, n]) => `<span class="chip">${esc(l)} · ${n}</span>`).join("")}
+        <span class="chip">${m.loc.toLocaleString()} LOC</span></div>
+      ${m.entrypoints.length ? `<h3>Entry points</h3><ul>${m.entrypoints.map(f => `<li>${fileLink(f)}</li>`).join("")}</ul>` : ""}
+      <h3>Uses (${out.length})</h3>${modLinks(out)}
+      <h3>Used by (${inn.length})</h3>${modLinks(inn)}
+      <h3>Files (${m.files.length})</h3><ul>${files.map(f => `<li>${fileLink(f)}</li>`).join("")}</ul>
+      ${m.files.length > files.length ? `<p class="hint">…and ${m.files.length - files.length} more</p>` : ""}`;
+  }
+
+  $("panel").addEventListener("click", e => {
+    const t = e.target.closest("[data-mod]");
+    if (t) select(t.dataset.mod || null);
+  });
+
+  // ---- diagram
+  const nodeEls = {};
+  function select(id) {
+    selected = id;
+    Object.entries(nodeEls).forEach(([mid, el]) => el.classList.toggle("sel", mid === id));
+    id ? show(id) : overview();
+  }
+
+  async function draw() {
+    mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: isDark() ? "dark" : "default", layout,
+                         elk: { mergeEdges: true, nodePlacementStrategy: "NETWORK_SIMPLEX" },
+                         flowchart: { curve: "basis", htmlLabels: true, nodeSpacing: 40, rankSpacing: 70 },
+                         maxEdges: 2000 });
+    try {
+      const { svg } = await mermaid.render("r2d", SRC);
+      $("diagram").innerHTML = svg;
+    } catch (err) {
+      $("diagram").innerHTML = `<div class="err">Could not render diagram: ${esc(err.message || err)}</div>`;
+      return;
+    }
+    const svgEl = $("diagram").querySelector("svg");
+    svgEl.removeAttribute("style");
+    svgEl.querySelectorAll("g.node").forEach(el => {
+      const raw = el.dataset.id || el.id || "";
+      const m = raw.match(/(m\d+)/);
+      if (!m || !byId[m[1]]) return;
+      nodeEls[m[1]] = el;
+      el.addEventListener("click", ev => { ev.stopPropagation(); select(m[1]); });
+    });
+    if (window.svgPanZoom) {
+      panzoom = svgPanZoom(svgEl, { zoomScaleSensitivity: 0.3, minZoom: 0.2, maxZoom: 12, fit: true, center: true,
+                                    dblClickZoomEnabled: false });
+    }
+    if (selected) select(selected);
+  }
+
+  $("search").addEventListener("input", e => {
+    const q = e.target.value.trim().toLowerCase();
+    Object.entries(nodeEls).forEach(([id, el]) => {
+      const m = byId[id];
+      const hit = !q || [m.name, m.path, m.role, m.summary].join(" ").toLowerCase().includes(q);
+      el.classList.toggle("dim", !hit);
+    });
+  });
+  $("search").addEventListener("keydown", e => {
+    if (e.key !== "Enter") return;
+    const first = Object.keys(nodeEls).find(id => !nodeEls[id].classList.contains("dim"));
+    if (first) select(first);
+  });
+  $("fit").onclick = () => { if (panzoom) { panzoom.resize(); panzoom.fit(); panzoom.center(); } };
+  $("copy").onclick = async () => {
+    try { await navigator.clipboard.writeText(SRC); $("copy").textContent = "Copied ✓"; }
+    catch { $("copy").textContent = "Copy failed"; }
+    setTimeout(() => $("copy").textContent = "Copy Mermaid", 1500);
+  };
+  $("svg").onclick = () => {
+    const el = $("diagram").querySelector("svg");
+    if (!el) return;
+    const blob = new Blob([el.outerHTML], { type: "image/svg+xml" });
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `${G.name}-architecture.svg` });
+    a.click();
+  };
+  $("theme").onclick = () => {
+    const next = isDark() ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("r2d-theme", next); } catch {}
+    draw();
+  };
+  window.addEventListener("resize", () => panzoom && panzoom.resize());
+
+  overview();
+  if (mermaid) draw();
+  else $("diagram").innerHTML = `<div class="err">Mermaid failed to load (offline?). Use --format md or mermaid instead.</div>`;
+}
+</script>
+</body>
+</html>
