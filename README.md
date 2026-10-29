@@ -25,7 +25,7 @@ Every new codebase starts with the same hour of clicking through folders to figu
 - **Real structure, not guesses** — modules and arrows come from static analysis of imports (Python, JS/TS incl. `tsconfig` path aliases, Go, Rust, Java/Kotlin/Scala, C#). The LLM only writes the labels.
 - **Private by default** — works with local models via Ollama, or with no model at all. Your code never has to leave your machine.
 - **Interactive** — click any box to see what it does, its files, what it uses and what uses it. Search, pan/zoom, dark mode, export SVG / Mermaid.
-- **PR blast radius** — `--diff main` highlights the modules a branch touches **and every module that depends on them**.
+- **PR blast radius** — `--diff main` highlights the modules a branch touches **and every module that depends on them**, locally or as a GitHub Action comment on every PR.
 - **Works in your AI tools** — MCP server for Claude Code, Claude Desktop and Cursor; skill for coding agents.
 
 ## Install
@@ -108,6 +108,29 @@ Then just ask: *"Draw the architecture of this repo"*, *"What's the blast radius
 | `diff_impact` | Changed modules and their blast radius vs a git ref |
 
 Inside an MCP client no API key is needed — the tools return the structure and your assistant does the explaining. Pass `summarize: true` to use your configured model instead.
+
+## Blast radius on every pull request (GitHub Action)
+
+Post a diagram of what each PR touches — and which modules depend on it — as a PR comment that updates on every push.
+
+```yaml
+# .github/workflows/architecture.yml
+name: Architecture impact
+on: pull_request
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  impact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: adityasingh-ops/repo2diagram@v0
+```
+
+Locally, the same report is `repo2diagram --diff main -f pr`.
 
 ## Use it as an agent skill
 

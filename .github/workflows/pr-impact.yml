@@ -1,0 +1,20 @@
+name: PR impact
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  impact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Dogfood the action from this checkout, running this checkout's code.
+      - uses: ./
+        with:
+          version: .

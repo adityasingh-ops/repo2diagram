@@ -1,0 +1,63 @@
+name: repo2diagram PR impact
+description: Comment an architecture diagram of what a pull request changes and what depends on it.
+author: Aditya Singh
+branding:
+  icon: git-pull-request
+  color: blue
+
+inputs:
+  base:
+    description: Branch to compare against. Defaults to the pull request's base branch.
+    required: false
+    default: ""
+  path:
+    description: Repository directory to analyse.
+    required: false
+    default: "."
+  comment:
+    description: Post (and keep updating) a comment on the pull request.
+    required: false
+    default: "true"
+  version:
+    description: repo2diagram version to install from PyPI.
+    required: false
+    default: "repo2diagram"
+
+outputs:
+  markdown:
+    description: Path to the generated Markdown report.
+    value: ${{ steps.render.outputs.markdown }}
+
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@v5
+
+    - id: render
+      shell: bash
+      env:
+        BASE: ${{ inputs.base || github.base_ref || github.event.repository.default_branch }}
+        R2D_PATH: ${{ inputs.path }}
+        R2D_VERSION: ${{ inputs.version }}
+      run: |
+        git -C "$R2D_PATH" fetch --no-tags --depth=200 origin "$BASE" >/dev/null 2>&1 || true
+        out="$RUNNER_TEMP/repo2diagram-pr.md"
+        uvx --from "$R2D_VERSION" repo2diagram "$R2D_PATH" --no-llm --quiet --diff "origin/$BASE" -f pr -o "$out"
+        cat "$out" >> "$GITHUB_STEP_SUMMARY"
+        echo "markdown=$out" >> "$GITHUB_OUTPUT"
+
+    - if: inputs.comment == 'true' && github.event.pull_request.number
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR: ${{ github.event.pull_request.number }}
+        BODY_FILE: ${{ steps.render.outputs.markdown }}
+      run: |
+        marker='<!-- repo2diagram:pr -->'
+        id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+              --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -n1)
+        if [ -n "$id" ]; then
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@"$BODY_FILE" >/dev/null
+        else
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file "$BODY_FILE"
+        fi
