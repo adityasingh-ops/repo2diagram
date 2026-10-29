@@ -1,0 +1,46 @@
+from pathlib import Path
+
+from conftest import write_tree
+
+from repo2diagram.scanner import scan
+
+
+def edge_paths(graph):
+    by_id = {m.id: m.path for m in graph.modules}
+    return {(by_id[e.source], by_id[e.target]) for e in graph.edges}
+
+
+def links(graph, src_prefix, dst_prefix):
+    return any(s.startswith(src_prefix) and d.startswith(dst_prefix) for s, d in edge_paths(graph))
+
+
+def test_rust_workspace(tmp_path: Path):
+    root = write_tree(tmp_path / "rs", {
+        "Cargo.toml": '[workspace]\nmembers = ["crates/*"]\n',
+        "crates/core/Cargo.toml": '[package]\nname = "my-core"\n',
+        "crates/core/src/lib.rs": "pub mod engine;\npub mod util;\n",
+        "crates/core/src/engine/mod.rs": "use crate::util::helpers::{trim, pad};\nmod plan;\n",
+        "crates/core/src/engine/plan.rs": "use super::super::util;\n",
+        "crates/core/src/util/mod.rs": "pub mod helpers;\n",
+        "crates/core/src/util/helpers.rs": "pub fn trim() {}\n",
+        "crates/cli/Cargo.toml": '[package]\nname = "cli"\n',
+        "crates/cli/src/main.rs": "use my_core::engine::run;\nfn main() { my_core::util::helpers::trim(); }\n",
+        "crates/server/Cargo.toml": '[package]\nname = "server"\n',
+        "crates/server/src/main.rs": "use my_core::{engine, util::helpers};\n",
+    })
+    graph = scan(root)
+    assert links(graph, "crates/cli", "crates/core")
+    assert links(graph, "crates/server", "crates/core")
+    assert not links(graph, "crates/core", "crates/cli")
+
+
+def test_rust_modules_inside_one_crate(tmp_path: Path):
+    root = write_tree(tmp_path / "one", {
+        "Cargo.toml": '[package]\nname = "one"\n',
+        "src/main.rs": "mod api;\nmod db;\nuse crate::api::routes;\n",
+        "src/api/mod.rs": "pub mod routes;\n",
+        "src/api/routes.rs": "use crate::db::Pool;\nuse super::super::db;\n",
+        "src/db/mod.rs": "pub struct Pool;\n",
+        "src/db/schema.rs": "use self::super::Pool;\n",
+    })
+    assert links(scan(root), "src/api", "src/db")

@@ -17,6 +17,7 @@ from pathlib import Path, PurePosixPath
 import pathspec
 
 from repo2diagram.model import Edge, Module, RepoGraph
+from repo2diagram.resolvers import RustResolver
 
 LANGUAGES = {
     ".py": "Python", ".js": "JavaScript", ".jsx": "JavaScript", ".mjs": "JavaScript", ".cjs": "JavaScript",
@@ -480,6 +481,10 @@ def _import_edges(root: Path, files: list[str], file_to_module: dict[str, str]) 
         if f.endswith(".go"):
             go_dirs.setdefault(str(PurePosixPath(f).parent), f)
 
+    extra = {}
+    if any(f.endswith(".rs") for f in files):
+        extra["Rust"] = RustResolver(root, files)
+
     weights: Counter[tuple[str, str]] = Counter()
     for f in files:
         src_mod = file_to_module.get(f)
@@ -505,6 +510,8 @@ def _import_edges(root: Path, files: list[str], file_to_module: dict[str, str]) 
                     hit = go_dirs.get(imp[len(go_mod) + 1:])
                     if hit:
                         targets.append(hit)
+        elif lang in extra:
+            targets = extra[lang].targets(root, f)
         for t in set(targets):
             dst_mod = file_to_module.get(t)
             if dst_mod and dst_mod != src_mod:
