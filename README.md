@@ -22,7 +22,7 @@ uvx repo2diagram modelcontextprotocol/python-sdk --open
 
 Every new codebase starts with the same hour of clicking through folders to figure out what talks to what. `repo2diagram` reads the real import graph, groups files into modules, and (optionally) asks an LLM to label each one — so you get an accurate map, not a hallucinated one.
 
-- **Real structure, not guesses** — modules and arrows come from static analysis of imports (Python, JS/TS incl. `tsconfig` path aliases, Go). The LLM only writes the labels.
+- **Real structure, not guesses** — modules and arrows come from static analysis of imports (Python, JS/TS incl. `tsconfig` path aliases, Go, Rust, Java/Kotlin/Scala, C#). The LLM only writes the labels.
 - **Private by default** — works with local models via Ollama, or with no model at all. Your code never has to leave your machine.
 - **Interactive** — click any box to see what it does, its files, what it uses and what uses it. Search, pan/zoom, dark mode, export SVG / Mermaid.
 - **PR blast radius** — `--diff main` highlights the modules a branch touches **and every module that depends on them**.
@@ -117,7 +117,7 @@ Copy [`skills/repo2diagram`](skills/repo2diagram) into `~/.claude/skills/` (or y
 
 1. **Scan** — list files (respects `.gitignore`), skip vendored and generated folders.
 2. **Group** — open up container folders (`src/`, `packages/`, `apps/` …) until the repo splits into a readable set of modules; flat packages are drawn file by file.
-3. **Link** — parse imports (Python AST, JS/TS with `tsconfig` aliases per package, Go modules) and count module-to-module references.
+3. **Link** — parse imports (Python AST, JS/TS with `tsconfig` aliases per package, Go modules, Rust `mod`/`use` across workspace crates, JVM packages, C# namespaces) and count module-to-module references.
 4. **Label** — heuristics, or one small LLM call per module (cached by content hash).
 5. **Render** — Mermaid with the ELK layout engine, wrapped in a single self-contained HTML file.
 
@@ -138,7 +138,7 @@ git clone https://github.com/adityasingh-ops/repo2diagram && cd repo2diagram
 uv sync && uv run pytest
 ```
 
-More import resolvers (Rust, Java, Kotlin, C#) are the most wanted contributions — see `scanner.py`.
+More import resolvers (Ruby, PHP, Swift, Dart, C/C++) are the most wanted contributions — see `resolvers.py`.
 
 ## License
 

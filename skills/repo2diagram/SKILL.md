@@ -5,7 +5,7 @@ description: Draw an accurate architecture diagram of a codebase from its real i
 
 # repo2diagram
 
-`repo2diagram` builds the module graph from real imports (Python, JS/TS, Go) and renders it as Mermaid or an interactive HTML page.
+`repo2diagram` builds the module graph from real imports (Python, JS/TS, Go, Rust, Java/Kotlin, C#) and renders it as Mermaid or an interactive HTML page.
 
 ## Commands
 
